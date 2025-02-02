@@ -1,0 +1,61 @@
+{% extends "base.njk" %}
+
+{% block titulo %}Paciente | Editar{% endblock %}
+
+{% block contenido %}
+
+    <h1>Editar paciente</h1>
+
+    <form action="/patients/{{ patient._id }}" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Nombre:
+                <input type="text" class="form-control" name="nombre" value="{{ patient.name }}">
+            </label>
+            {% if errores.name %}
+                <p class="text-danger">{{ errores.name }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label>Apellido:
+                <input type="text" class="form-control" name="apellido" value="{{ patient.surname }}">
+            </label>
+            {% if errores.surname %}
+                <p class="text-danger">{{ errores.surname }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label>Fecha de nacimiento:
+                <input type="date" class="form-control" name="fecha" value="{{ birthDate }}">
+            </label>
+            {% if errores.birthDate %}
+                <p class="text-danger">{{ errores.birthDate }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label>Dirección:
+                <input type="text" class="form-control" name="direccion" value="{{ patient.address }}">
+            </label>
+            {% if errores.address %}
+                <p class="text-danger">{{ errores.address }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label>Número del seguro:
+                <input type="text" class="form-control" name="seguro" value="{{ patient.insuranceNumber }}">
+            </label>
+            {% if errores.insuranceNumber %}
+                <p class="text-danger">{{ errores.insuranceNumber }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label>Foto de perfil:
+                <img src="/{{ patient.imagen }}" alt="Foto de perfil" style="max-width: 100px; margin-left: 8px;"><br><br>
+                <input type="file" class="form-control" name="imagen">
+            </label>
+        </div><br>
+        <button type="submit" class="btn btn-primary">
+            Enviar
+        </button><br><br>
+    </form>
+
+{% endblock %}

@@ -1,98 +1,130 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Patient = require('../models/patient');
-const auth = require(__dirname + '/../auth/auth.js');
-
+const User = require('../models/users');
+const upload = require('../multerConfig');
 const router = express.Router();
 
-router.get("/", auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.get("/", async (req, res) => {
     try {
         const result = await Patient.find();
 
         if (result.length === 0) {
-            return res.status(404).send({ error: "No se encontraron pacientes" });
+            return res.render('error', {error: 'No se encontraron pacientes'});
         }
 
-        res.status(200).send({ result: result });
+        return res.render('patients_list', {patients: result});
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error listando pacientes'});
     }
 });
 
-router.get('/find', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.get('/find', async (req, res) => {
     try {
-        const surname = req.query.surname;
-
-        if (!surname) {
-            const patients = await Patient.find();
-            return res.status(200).send({ result: patients });
-        }
+        const surname = req.query.search;
 
         const result = await Patient.find({
             surname: { $regex: surname, $options: 'i' }
         });
 
-        if (result.length === 0) {
-            return res.status(404).send({ error: "No se ha encontrado ningun paciente con esos criterios" });
+        if (!surname || result.length === 0) {
+            return res.render('error', {error: "No se encontraron pacientes asociados al apellido ingresado."});
         }
 
-        res.status(200).send({ result: result });
+        return res.render('patients_list', {patients: result});
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Hubo un problema al procesar la búsqueda. Inténtelo más tarde.'});
     }
 });
 
-router.get('/:id', auth.protegerRuta(["admin", "physio", "patient"]), async (req, res) => {
+router.get("/new", (req, res) => {
+    try {
+        return res.render('patient_add');
+    } catch (error) {
+        return res.render('error', {error: 'Error accediendo al registro de pacientes'});
+    }
+});
+
+router.get("/:id/edit", async (req, res) => {
+    try {
+        const patient = await Patient.findById(req.params.id);
+        const formattedDate = patient.birthDate.toISOString().split('T')[0];
+        return res.render('patient_edit', {patient: patient, birthDate: formattedDate});
+    } catch (error) {
+        return res.render('error', {error: 'Error accediendo a la edición del paciente'});
+    }
+});
+
+router.get('/:id', async (req, res) => {
     try{
-        const userId = req.user.id;
-        const patientId = req.params.id;
+        //const userId = req.user.id; a lo mejor lo necesitas para las sesiones
+        //const patientId = req.params.id;
 
-        if (req.user.rol === 'patient' && userId !== patientId) {
-            return res.status(403).send({ error: "Acceso no autorizado" });
-        }
-
-        const result = await Patient.findById(req.params.id)
+        const result = await Patient.findById(req.params.id);
 
         if(result)
-            res.status(200).send({ result: result });
+            return res.render('patient_detail', {patient: result});
         else
-            res.status(404).send({ error: "No se encontraron pacientes" });
+            return res.render('error', {error: 'No se encontro al paciente'});
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error accediendo a los detalles del paciente'});
     }
 });
 
-router.post('/', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.post('/', upload.single('imagen'), async (req, res) => {
     try{
+        let nuevoUser = new User({
+            login: req.body.usuario,
+            password: req.body.contrasena,
+            rol: "patient"
+        })
         let nuevoPatient = new Patient({
-            name: req.body.name,
-            surname: req.body.surname,
-            birthDate: req.body.birthDate,
-            address: req.body.address,
-            insuranceNumber: req.body.insuranceNumber
+            name: req.body.nombre,
+            surname: req.body.apellido,
+            birthDate: req.body.fecha,
+            address: req.body.direccion,
+            insuranceNumber: req.body.seguro,
+            imagen: req.file ? req.file.path : undefined
         });
-    
-        const result = await nuevoPatient.save()
-        res.status(201).send({ result: result });
+        
+        await nuevoUser.save()
+        await nuevoPatient.save()
+        return res.redirect(req.baseUrl);
     } catch(error) {
-        res.status(400).send({ error: error.message });
+        if (error.name === "ValidationError") {
+            let errores = { general: 'Error añadiendo los datos del paciente' };
+
+            for (const field in error.errors) {
+                errores[field] = error.errors[field].message;
+            }
+
+            return res.render('patient_add', { errores });
+        }
+
+        return res.render('error', {error: 'Error añadiendo los datos del paciente'});
     }
 });
 
-router.put('/:id', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.post('/:id', upload.single('imagen'), async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        return res.status(400).send({ error: "Error actualizando los datos del paciente" });
+        return res.render('error', { error: 'Error actualizando los datos del paciente' });
     }
 
-    try{
+    try {
+        const patient = await Patient.findById(req.params.id);
+        if (!patient) {
+            return res.render('error', { error: 'Paciente no encontrado' });
+        }
+
         const result = await Patient.findByIdAndUpdate(req.params.id, {
             $set: {
-                name: req.body.name,
-                surname: req.body.surname,
-                birthDate: req.body.birthDate,
-                address: req.body.address,
-                insuranceNumber: req.body.insuranceNumber
+                name: req.body.nombre,
+                surname: req.body.apellido,
+                birthDate: req.body.fecha,
+                address: req.body.direccion,
+                insuranceNumber: req.body.seguro,
+                imagen: req.file ? req.file.path : undefined
             }
         }, { 
             new: true,
@@ -100,33 +132,45 @@ router.put('/:id', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
         });
 
         if (!result) {
-            return res.status(400).send({ error: "Error actualizando los datos del paciente" });
+            return res.render('error', { error: 'Error actualizando los datos del paciente' });
         }
 
-        res.status(200).send({ result: result });
-    } catch(error) {
+        return res.render('patient_detail', { patient: result });
+
+    } catch (error) {
         if (error.name === "ValidationError") {
-            return res.status(400).send({ error: "Error actualizando los datos del paciente" });
+            let errores = { general: 'Error actualizando los datos del paciente' };
+
+            for (const field in error.errors) {
+                errores[field] = error.errors[field].message;
+            }
+
+            const patient = await Patient.findById(req.params.id);
+            return res.render('patient_edit', { errores, birthDate: req.body.fecha, patient });
         }
-        res.status(500).send({ error:"Error interno del servidor" });
+
+        return res.render('error', { error: 'Error interno del servidor: ' });
     }
 });
 
-router.delete('/:id', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+
+router.delete('/:id', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        return res.status(404).send({ error: "El paciente a eliminar no existe" });
+        return res.render('error', {error: 'El paciente a eliminar no existe'});
     }
 
     try {
         const result = await Patient.findByIdAndDelete(req.params.id);
+        //de momento no puedes borrar users ya que no puedes acceder a su id con req.user.id pq necesitas las sesiones
+        const user = await User.deleteOne({ _id: req.params.id });
 
-        if (!result) {
-            return res.status(404).send({ error: "El paciente a eliminar no existe" });
+        if (!result || !user) {
+            return res.render('error', {error: 'El paciente a eliminar no existe'});
         }
 
-        res.status(200).send({ result: result });
+        return res.redirect(req.baseUrl);
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error eliminando paciente'});
     }
 });
 

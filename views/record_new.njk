@@ -1,0 +1,28 @@
+{% extends "base.njk" %}
+
+{% block titulo %}Expediente | Nuevo{% endblock %}
+
+{% block contenido %}
+
+    <h1>Inserción de un nuevo expediente</h1>
+
+    <form action="/records" method="post">
+        <div class="form-group">
+            <label>Id del paciente:
+                <input type="text" class="form-control" name="id">
+            </label>
+        </div><br>
+        <div class="form-group">
+            <label for="expediente">Expediente médico:</label>
+            <textarea class="form-control" name="expediente" id="expediente" rows="4"></textarea>
+            {% if errores.medicalRecord %}
+                <p class="text-danger">{{ errores.medicalRecord }}</p>
+            {% endif %}
+        </div><br>
+
+        <button type="submit" class="btn btn-primary">
+            Enviar
+        </button><br><br>
+    </form>
+
+{% endblock %}

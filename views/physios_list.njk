@@ -1,0 +1,36 @@
+{% extends "base.njk" %}
+
+{% block titulo %}Físios | Listado{% endblock %}
+
+{% block contenido %}
+
+    <h1>Listado de Físios</h1><br>
+
+    <form action="/physios/find" method="get">
+        <select class="form-control" name="especialidad" id="especialidad" style="width: 230px;" onchange="this.form.submit()">
+            <option value="" selected="selected" disabled="disabled">Seleccione una especialidad</option>
+            <option value="Sports">Sports</option>
+            <option value="Neurological">Neurological</option>
+            <option value="Pediatric">Pediatric</option>
+            <option value="Geriatric">Geriatric</option>
+            <option value="Oncological">Oncological</option>
+        </select>
+    </form><br>
+
+    {% for physio in physios %}
+        <div class="container">
+            <div class="row align-items-center gap-1">
+                <p style="display: inline;" class="col-3">{{ physio.name + ' ' + physio.surname }}</p>
+                <a class="btn btn-success col-2" href="/physios/{{ physio._id }}/edit">Editar</a>
+                <form action="/physios/{{ physio._id }}" method="POST" style="display: inline-block; width: 230px;" class="col-2">
+                    <input type="hidden" name="_method" value="delete">
+                    <button type="submit" class="btn btn-danger" style="width: 100%;">
+                        Eliminar
+                    </button>
+                </form>
+                <a class="btn btn-warning col-2" href="/physios/{{ physio.id }}">Ver detalles</a>
+            </div>
+        </div>
+    {% endfor %}
+
+{% endblock %}

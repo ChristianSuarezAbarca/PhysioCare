@@ -1,0 +1,30 @@
+{% extends "base.njk" %}
+
+{% block titulo %}Pacientes | Listado{% endblock %}
+
+{% block contenido %}
+
+        <h1>Listado de Pacientes</h1><br>
+
+        <form action="/patients/find" method="get">
+                <input type="search" name="search" placeholder="Busque un paciente por apellido" style="width: 250px;">
+        </form><br>
+
+        {% for patient in patients %}
+                <div class="container">
+                        <div class="row align-items-center gap-1">
+                                <p style="display: inline;" class="col-3">{{ patient.name + ' ' + patient.surname }}</p>
+                                <a class="btn btn-success col-2" href="/patients/{{ patient._id }}/edit">Editar</a>
+                                <form action="/patients/{{ patient._id }}" method="POST" style="display: inline-block; width: 230px;" class="col-2">
+                                        <input type="hidden" name="_method" value="delete">
+                                        <button type="submit" class="btn btn-danger" style="width: 100%;">
+                                                Eliminar
+                                        </button>
+                                </form>
+                                <a class="btn btn-warning col-2" href="/patients/{{ patient.id }}">Ver detalles</a>
+                                <a class="btn btn-info col-2" href="/records/new" style="margin-left: 10px;">Crear expediente</a><br>
+                        </div>
+                </div>
+        {% endfor %}
+
+{% endblock %}

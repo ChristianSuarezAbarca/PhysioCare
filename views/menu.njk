@@ -1,0 +1,35 @@
+<div class="alert alert-secondary">
+    <a class="btn btn-dark" href="/login">Login</a>
+    &nbsp;&nbsp;
+    <a class="btn btn-dark" href="/patients">Listado de Pacientes</a>
+    &nbsp;&nbsp;
+    <a class="btn btn-dark" href="/patients/new">Nuevo Paciente</a>
+    &nbsp;&nbsp;
+    <a class="btn btn-dark" href="/physios">Listado de Físios</a>
+    &nbsp;&nbsp;
+    <a class="btn btn-dark" href="/physios/new">Nuevo Físio</a>
+    &nbsp;&nbsp;
+    <a class="btn btn-dark" href="/records">Listado de Expedientes</a>
+    &nbsp;&nbsp;
+    <a class="btn btn-dark" href="/records/new">Nuevo Expediente</a>
+    <br>
+
+    <form action="/patients/find" method="get" style="display: inline;">
+            <input type="search" name="search" placeholder="Busque un paciente por apellido" style="width: 250px;">
+    </form>
+    &nbsp;&nbsp;
+    <form action="/physios/find" method="get" style="display: inline; margin-left: 10px;">
+        <select class="form-control" name="especialidad" id="especialidad" style="width: 230px; display: inline;" onchange="this.form.submit()">
+            <option value="" selected="selected" disabled="disabled">Seleccione una especialidad</option>
+            <option value="Sports">Sports</option>
+            <option value="Neurological">Neurological</option>
+            <option value="Pediatric">Pediatric</option>
+            <option value="Geriatric">Geriatric</option>
+            <option value="Oncological">Oncological</option>
+        </select>
+    </form>
+    &nbsp;&nbsp;
+    <form action="/records/find" method="get" style="display: inline; margin-left: 10px;">
+        <input type="search" name="surname" placeholder="Busque un expediente por apellido" style="width: 275px;">
+    </form><br>
+</div>

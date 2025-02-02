@@ -1,0 +1,58 @@
+{% extends "base.njk" %}
+
+{% block titulo %}Físio | Editar{% endblock %}
+
+{% block contenido %}
+
+    <h1>Editar físio</h1>
+
+    <form action="/physios/{{ physio._id }}" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Nombre:
+                <input type="text" class="form-control" name="nombre" value="{{ physio.name }}">
+            </label>
+            {% if errores.name %}
+                <p class="text-danger">{{ errores.name }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label>Apellido:
+                <input type="text" class="form-control" name="apellido" value="{{ physio.surname }}">
+            </label>
+            {% if errores.surname %}
+                <p class="text-danger">{{ errores.surname }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label for="especialidad">Especialidad:</label>
+            <select class="form-control" name="especialidad" id="especialidad">
+                <option value="Sports" {{ 'selected' if physio.specialty == 'Sports' else '' }}>Sports</option>
+                <option value="Neurological" {{ 'selected' if physio.specialty == 'Neurological' else '' }}>Neurological</option>
+                <option value="Pediatric" {{ 'selected' if physio.specialty == 'Pediatric' else '' }}>Pediatric</option>
+                <option value="Geriatric" {{ 'selected' if physio.specialty == 'Geriatric' else '' }}>Geriatric</option>
+                <option value="Oncological" {{ 'selected' if physio.specialty == 'Oncological' else '' }}>Oncological</option>
+            </select>
+            {% if errores.specialty %}
+                <p class="text-danger">{{ errores.specialty }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label>Número de licencia:
+                <input type="text" class="form-control" name="licencia" value="{{ physio.licenseNumber }}">
+            </label>
+            {% if errores.licenseNumber %}
+                <p class="text-danger">{{ errores.licenseNumber }}</p>
+            {% endif %}
+        </div><br>
+        <div class="form-group">
+            <label>Foto de perfil:
+                <img src="/{{ physio.imagen }}" alt="Foto de perfil" style="max-width: 100px; margin-left: 8px;"><br><br>
+                <input type="file" class="form-control" name="imagen">
+            </label>
+        </div><br>
+        <button type="submit" class="btn btn-primary">
+            Enviar
+        </button><br><br>
+    </form>
+
+{% endblock %}

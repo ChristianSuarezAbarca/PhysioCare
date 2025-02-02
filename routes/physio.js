@@ -1,88 +1,119 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Physio = require('../models/physio');
-const auth = require(__dirname + '/../auth/auth.js');
-
+const User = require('../models/users');
+const upload = require('../multerConfig');
 const router = express.Router();
 
-router.get("/", auth.protegerRuta(["admin", "physio", "patient"]), async (req, res) => {
+router.get("/", async (req, res) => {
     try {
         const result = await Physio.find();
 
         if (result.length === 0) {
-            return res.status(404).send({ error: "No se encontraron fisios" });
+            return res.render('error', {error: 'No se encontraron físios'});
         }
 
-        res.status(200).send({ result: result });
+        return res.render('physios_list', {physios: result});
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error listando físios'});
     }
 });
 
-router.get('/find', auth.protegerRuta(["admin", "physio", "patient"]), async (req, res) => {
+router.get('/find', async (req, res) => {
     try {
-        const specialty = req.query.specialty;
-
-        if (!specialty) {
-            return res.status(404).send({ error: "No se encontraron fisios con esos criterios." });
-        }
+        const specialty = req.query.especialidad;
 
         const result = await Physio.find({
             specialty: { $regex: specialty, $options: 'i' }
         });
 
-        if (result.length === 0) {
-            return res.status(404).send({ error: "No se ha encontrado ningun fisio con esos criterios" });
+        if (!specialty || result.length === 0) {
+            return res.render('error', {error: "No se encontraron físios asociados a la especialidad ingresada."});
         }
 
-        res.status(200).send({ result: result });
+        return res.render('physios_list', {physios: result});
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Hubo un problema al procesar la búsqueda. Inténtelo más tarde.'});
     }
 });
 
-router.get('/:id', auth.protegerRuta(["admin", "physio", "patient"]), async (req, res) => {
+router.get("/new", (req, res) => {
+    try {
+        return res.render('physio_add');
+    } catch (error) {
+        return res.render('error', {error: 'Error accediendo al registro de físios'});
+    }
+});
+
+router.get("/:id/edit", async (req, res) => {
+    try {
+        const physio = await Physio.findById(req.params.id);
+        return res.render('physio_edit', {physio: physio});
+    } catch (error) {
+        return res.render('error', {error: 'Error accediendo a la edición del físio'});
+    }
+});
+
+router.get('/:id', async (req, res) => {
     try{
         const result = await Physio.findById(req.params.id)
 
         if(result)
-            res.status(200).send({ result: result });
+            return res.render('physio_detail', {physio: result});
         else
-            res.status(404).send({ error: "No se encontraron fisios" });
+        return res.render('error', {error: 'No se encontro al físio'});
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error accediendo a los detalles del físio'});
     }
 });
 
-router.post('/', auth.protegerRuta(["admin"]), async (req, res) => {
+router.post('/', upload.single('imagen'), async (req, res) => {
     try{
+        let nuevoUser = new User({
+            login: req.body.usuario,
+            password: req.body.contrasena,
+            rol: "physio"
+        })
         let nuevoPhysio = new Physio({
-            name: req.body.name,
-            surname: req.body.surname,
-            specialty: req.body.specialty,
-            licenseNumber: req.body.licenseNumber
+            name: req.body.nombre,
+            surname: req.body.apellido,
+            specialty: req.body.especialidad,
+            licenseNumber: req.body.licencia,
+            imagen: req.file ? req.file.path : undefined
         });
-    
-        const result = await nuevoPhysio.save()
-        res.status(201).send({ result: result });
+        
+        await nuevoUser.save()
+        await nuevoPhysio.save()
+        return res.redirect(req.baseUrl);
     } catch(error) {
-        res.status(400).send({ error: error.message });
+        if (error.name === "ValidationError") {
+            let errores = { general: 'Error añadiendo los datos del físio' };
+
+            for (const field in error.errors) {
+                errores[field] = error.errors[field].message;
+            }
+
+            return res.render('physio_add', { errores });
+        }
+
+        return res.render('error', {error: 'Error añadiendo los datos del físio' + error.message});
     }
 });
 
-router.put('/:id', auth.protegerRuta(["admin"]), async (req, res) => {
+router.post('/:id', upload.single('imagen'), async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        return res.status(400).send({ error: "Error actualizando los datos del fisio" });
+        return res.render('error', {error: 'Error actualizando los datos del físio'});
     }
 
     try{
         const result = await Physio.findByIdAndUpdate(req.params.id, {
             $set: {
-                name: req.body.name,
-                surname: req.body.surname,
-                specialty: req.body.specialty,
-                licenseNumber: req.body.licenseNumber
+                name: req.body.nombre,
+                surname: req.body.apellido,
+                specialty: req.body.especialidad,
+                licenseNumber: req.body.licencia,
+                imagen: req.file ? req.file.path : undefined
             }
         }, { 
             new: true,
@@ -90,33 +121,42 @@ router.put('/:id', auth.protegerRuta(["admin"]), async (req, res) => {
         });
 
         if (!result) {
-            return res.status(400).send({ error: "Error actualizando los datos del fisio" });
+            return res.render('error', {error: 'Error actualizando los datos del físio'});
         }
 
-        res.status(200).send({ result: result });
+        return res.render('physio_detail', {physio: result});
     } catch(error) {
         if (error.name === "ValidationError") {
-            return res.status(400).send({ error: "Error actualizando los datos del fisio" });
+            let errores = { general: 'Error actualizando los datos del físio' };
+
+            for (const field in error.errors) {
+                errores[field] = error.errors[field].message;
+            }
+
+            const physio = await Physio.findById(req.params.id);
+            return res.render('physio_edit', { errores, physio });
         }
-        res.status(500).send({ error:"Error interno del servidor" });
+
+        return res.render('error', {error: 'Error interno del servidor' + error.message});
     }
 });
 
-router.delete('/:id', auth.protegerRuta(["admin"]), async (req, res) => {
+router.delete('/:id', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        return res.status(404).send({ error: "El fisio a eliminar no existe" });
+        return res.render('error', {error: 'El físio a eliminar no existe'});
     }
 
     try {
         const result = await Physio.findByIdAndDelete(req.params.id);
+        const user = await User.deleteOne({ _id: req.params.id });
 
-        if (!result) {
-            return res.status(404).send({ error: "El fisio a eliminar no existe" });
+        if (!result || !user) {
+            return res.render('error', {error: 'El físio a eliminar no existe'});
         }
 
-        res.status(200).send({ result: result });
+        return res.redirect(req.baseUrl);
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error eliminando físio'});
     }
 });
 

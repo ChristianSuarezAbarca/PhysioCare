@@ -1,0 +1,36 @@
+{% extends "base.njk" %}
+
+{% block titulo %}Paciente | Ficha{% endblock %}
+
+{% block contenido %}
+
+    <h1>Detalles del Expediente Médico</h1><br>
+
+    <p><strong>Registro médico:</strong> {{ record.medicalRecord }}</p>
+    <hr>
+
+    <h3>Paciente</h3>
+
+    <p><strong>Nombre:</strong> {{ record.patient.name }}</p>
+    <p><strong>Apellido:</strong> {{ record.patient.surname }}</p>
+    <p><strong>Fecha de nacimiento:</strong> {{ record.patient.birthDate }}</p>
+    <p><strong>Dirección:</strong> {{ record.patient.address }}</p>
+    <p><strong>Número del seguro:</strong> {{ record.patient.insuranceNumber }}</p>
+    <hr>
+
+    {% for appointment in record.appointments %}
+        <h3>Cita {{ loop.index }}</h3>
+        <p><strong>Fecha:</strong> {{ appointment.date }}</p>
+        <p><strong>Diagnostico:</strong> {{ appointment.diagnosis }}</p>
+        <p><strong>Tratamiento:</strong> {{ appointment.treatment }}</p>
+        <p><strong>Observaciones:</strong> {{ appointment.observations }}</p>
+
+        <h4>Fue atendido por:</h4>
+        <p><strong>Nombre:</strong> {{ appointment.physio.name }}</p>
+        <p><strong>Apellido:</strong> {{ appointment.physio.surname }}</p>
+        <p><strong>Especialidad:</strong> {{ appointment.physio.specialty }}</p>
+        <p><strong>Número de licencia:</strong> {{ appointment.physio.licenseNumber }}</p>
+        <hr>
+    {% endfor%}
+
+{% endblock %}

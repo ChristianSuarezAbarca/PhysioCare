@@ -3,90 +3,106 @@ const mongoose = require('mongoose');
 const Record = require('../models/record');
 const Physio = require('../models/physio');
 const Patient = require('../models/patient');
-const auth = require(__dirname + '/../auth/auth.js');
-
+const upload = require('../multerConfig');
 const router = express.Router();
 
-router.get("/", auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.get("/", async (req, res) => {
     try {
-        const result = await Record.find();
+        const result = await Record.find().populate('patient').populate('appointments.physio');
 
         if (result.length === 0) {
-            return res.status(404).send({ error: "No se encontraron expedientes" });
+            return res.render('error', {error: 'No se encontraron expedientes médicos'});
         }
 
-        res.status(200).send({ result: result });
+        return res.render('records_list', {records: result});
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error listando expedientes médicos'});
     }
 });
 
-router.get('/find', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.get('/find', async (req, res) => {
     try {
         const surname = req.query.surname;
-
-        if (!surname) {
-            return res.status(404).send({ error: "No se encontraron expedientes con esos criterios." });
-        }
 
         const records = await Record.find()
             .populate({
                 path: 'patient',
                 match: { surname: { $regex: surname, $options: 'i' } }
-            });
-
+            }).populate('appointments.physio');
+        
         const result = records.filter(record => record.patient !== null);
 
-        if (result.length === 0) {
-            return res.status(404).send({ error: "No se encontraron expedientes con esos criterios." });
+        if (!surname || !records || result.length === 0) {
+            return res.render('error', {error: 'No se encontraron expedientes asociados al apellido ingresado.'});
         }
 
-        res.status(200).send({ result: result });
+        return res.render('records_list', {records: result});
     } catch (error) {
-        console.error(error);
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Hubo un problema al procesar la búsqueda. Inténtelo más tarde.'});
     }
 });
 
-router.get('/:id', auth.protegerRuta(["admin", "physio", "patient"]), async (req, res) => {
+router.get("/new", (req, res) => {
     try {
-        const userId = req.user.id;
-        const patientId = req.params.id;
-
-        if (req.user.rol === 'patient' && userId !== patientId) {
-            return res.status(403).send({ error: "Acceso no autorizado" });
-        }
-
-        const record = await Record.findOne({ patient: req.params.id });
-
-        if (!record) {
-            return res.status(404).send({ error: "No se encontró el expediente del paciente" });
-        }
-
-        res.status(200).send({ result: record });
+        return res.render('record_new');
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error accediendo al registro de expedientes'});
     }
 });
 
-router.post('/', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.get("/:id/edit", async (req, res) => {
+    try {
+        const patient = await Patient.findById(req.params.id);
+        const formattedDate = patient.birthDate.toISOString().split('T')[0];
+        return res.render('patient_edit', {patient: patient, birthDate: formattedDate});
+    } catch (error) {
+        return res.render('error', {error: 'Error accediendo a la edición del paciente'});
+    }
+});
+
+router.get('/:id', async (req, res) => {
+    try {
+        //const userId = req.user.id;
+        //const patientId = req.params.id;
+        const result = await Record.findOne({ patient: req.params.id }).populate('patient').populate('appointments.physio');
+
+        if (!result) {
+            return res.render('error', {error: 'No se encontro el expediente médico'});
+        }
+
+        return res.render('record_detail', {record: result});
+    } catch (error) {
+        return res.render('error', {error: error.message});
+    }
+});
+
+router.post('/', async (req, res) => {
     try{
-        const patient = req.body.patient;
-        const medicalRecord = req.body.medicalRecord;
-  
+        const id = req.body.id;
+        const patient = await Patient.findById(id);
         const nuevoRecord = new Record({
             patient: patient,
-            medicalRecord: medicalRecord
+            medicalRecord: req.body.expediente
         });
     
-        const result = await nuevoRecord.save();
-        res.status(201).send({ result: result });
+        await nuevoRecord.save();
+        return res.redirect(req.baseUrl);
     } catch(error) {
-        res.status(400).send({ error: error.message });
+        if (error.name === "ValidationError") {
+            let errores = { general: 'Error añadiendo los datos del expediente' };
+
+            for (const field in error.errors) {
+                errores[field] = error.errors[field].message;
+            }
+
+            return res.render('record_add', { errores });
+        }
+
+        return res.render('error', {error: 'Error añadiendo los datos del expediente'});
     }
 });
 
-router.post('/:id/appointments', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.post('/:id/appointments', async (req, res) => {
     try {
         const { id } = req.params;
         const { date, physio, diagnosis, treatment, observations } = req.body;
@@ -122,17 +138,17 @@ router.post('/:id/appointments', auth.protegerRuta(["admin", "physio"]), async (
     }
 });
 
-router.delete('/:id', auth.protegerRuta(["admin", "physio"]), async (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
         const result = await Record.findOneAndDelete({ patient: req.params.id });
 
         if (!result) {
-            return res.status(404).send({ error: "No se encontraron expedientes con esos criterios." });
+            return res.render('error', {error: 'El expediente a eliminar no existe'});
         }
 
-        res.status(200).send({ result: result });
+        return res.redirect(req.baseUrl);
     } catch (error) {
-        res.status(500).send({ error: "Error interno del servidor" });
+        return res.render('error', {error: 'Error eliminando expediente'});
     }
 });
 

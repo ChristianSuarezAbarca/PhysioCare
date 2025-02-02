@@ -1,0 +1,16 @@
+{% extends "base.njk" %}
+
+{% block titulo %}Físio | Ficha{% endblock %}
+
+{% block contenido %}
+
+    <h1>Detalles del Físio</h1><br>
+
+    <p><strong>Nombre:</strong> {{ physio.name }}</p>
+    <p><strong>Apellido:</strong> {{ physio.surname }}</p>
+    <p><strong>Especialidad:</strong> {{ physio.specialty }}</p>
+    <p><strong>Número de licencia:</strong> {{ physio.licenseNumber }}</p>
+    <img src="/{{ physio.imagen }}" alt="Foto de perfil" style="height: 200px;"><br><br>
+
+    <a class="btn btn-success" href="/physios/{{ physio.id }}/edit">Editar</a>
+{% endblock %}

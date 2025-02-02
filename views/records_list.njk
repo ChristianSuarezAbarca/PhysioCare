@@ -1,0 +1,29 @@
+{% extends "base.njk" %}
+
+{% block titulo %}Expediente | Listado{% endblock %}
+
+{% block contenido %}
+
+    <h1>Listado de Expedientes Médicos</h1><br>
+
+    <form action="/records/find" method="get">
+        <input type="search" name="surname" placeholder="Busque un expediente por apellido" style="width: 275px;">
+    </form><br>
+
+    {% for record in records %}
+        <div class="container">
+            <div class="row align-items-center gap-1">
+                <p style="display: inline;" class="col-3">{{ record.patient.name + ' ' + record.patient.surname }}</p>
+                <a class="btn btn-info col-2" href="/records/{{ record.id }}">Añadir cita</a><br>
+                <form action="/records/{{ record.patient.id }}" method="POST" style="display: inline-block; width: 230px;" class="col-2">
+                    <input type="hidden" name="_method" value="delete">
+                    <button type="submit" class="btn btn-danger" style="width: 100%;">
+                        Eliminar
+                    </button>
+                </form>
+                <a class="btn btn-warning col-2" href="/records/{{ record.patient.id }}" style="margin-left: 10px;">Ver detalles</a>
+            </div>
+        </div>
+    {% endfor %}
+
+{% endblock %}
