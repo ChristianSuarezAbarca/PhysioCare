@@ -27,7 +27,7 @@ app.use(
     })
 );
 
-mongoose.connect("mongodb://localhost:27017/physiocare");
+mongoose.connect("mongodb://mymongodb:27017/physiocare");
 
 app.use("/public", express.static(__dirname + "/public"));
 app.use(express.static(__dirname + "/node_modules/bootstrap/dist"));
