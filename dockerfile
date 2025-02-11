@@ -1,5 +1,5 @@
 # Imagen base
-FROM node:22.13.0
+FROM node:20.17.0
 # Crea un directorio llamado "app" en la ruta /usr/src/ con la opción -p para asegurar que se crean todos los subdirectorios, incluso si ya existen.
 RUN mkdir -p /usr/src/app
 # Establece la ruta de trabajo para las siguientes instrucciones
